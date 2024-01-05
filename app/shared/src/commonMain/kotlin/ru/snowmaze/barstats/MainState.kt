@@ -9,4 +9,6 @@ sealed class MainState {
     object Empty : MainState()
 
     class Ready(val getStatisticsResult: GetStatisticsResult) : MainState()
+
+    class Error(val message: String) : MainState()
 }

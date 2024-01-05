@@ -1,4 +1,4 @@
-package ru.snowmaze.barstats
+package ru.snowmaze.barstats.errors
 
 import kotlinx.coroutines.delay
 

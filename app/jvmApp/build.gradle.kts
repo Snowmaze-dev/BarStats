@@ -5,6 +5,8 @@ plugins {
     id("com.google.devtools.ksp") version "1.9.21-1.0.15"
     id("com.github.johnrengelman.shadow") version "7.1.2"
 }
+group = "ru.snowmaze.barstats"
+version = "0.0.2"
 
 kotlin {
     jvmToolchain(8)

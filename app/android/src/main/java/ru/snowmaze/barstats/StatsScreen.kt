@@ -8,7 +8,9 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -17,6 +19,7 @@ import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -43,26 +46,37 @@ fun StatsScreen(paddingValues: PaddingValues = PaddingValues()) {
     ) {
         val stateCollected by mainViewModel.state.collectAsState()
         when (val state = stateCollected) {
-            is MainState.Empty -> Text(
-                text = "Click load stats button.",
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
-                color = MaterialTheme.colorScheme.onSurface
-            )
-
-            is MainState.Loading -> Text(
-                text = "Loading ${state.playerName} stats.",
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
-                color = MaterialTheme.colorScheme.onSurface
-            )
-
             is MainState.Ready -> ReadyStatsScreen(getStatisticsResult = state.getStatisticsResult)
+
+            is MainState.Loading -> Column(Modifier.fillMaxWidth()) {
+                StateText("Loading ${state.playerName} stats.")
+                CircularProgressIndicator(
+                    modifier = Modifier
+                        .wrapContentHeight()
+                        .heightIn(24.dp)
+                        .padding(top = 4.dp)
+                        .align(Alignment.CenterHorizontally)
+                )
+            }
+
+            is MainState.Empty -> StateText("Click load stats button.")
+
+            is MainState.Error -> StateText("Some error occurred: ${state.message}.")
         }
         Spacer(modifier = Modifier.fillMaxHeight())
     }
+}
+
+@Composable
+fun StateText(text: String) {
+    Text(
+        text = text,
+        textAlign = TextAlign.Center,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp),
+        color = MaterialTheme.colorScheme.onSurface
+    )
 }
 
 @Composable
@@ -141,6 +155,7 @@ fun PlayerItem(modifier: Modifier = Modifier, item: WithPlayerStat, isEnemies: B
                 MaterialTheme.colorScheme.surfaceVariant,
                 shape = shape
             )
+            .fillMaxWidth()
             .padding(12.dp)
             .then(modifier)
     ) {
@@ -190,6 +205,7 @@ fun MapItem(modifier: Modifier = Modifier, item: MapStat) {
                 MaterialTheme.colorScheme.surfaceVariant,
                 shape = shape
             )
+            .fillMaxWidth()
             .padding(12.dp)
             .then(modifier)
     ) {

@@ -1,12 +1,12 @@
 package ru.snowmaze.barstats.repository
 
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import okio.Path
 import ru.snowmaze.barstats.BarAPIService
 import ru.snowmaze.barstats.FileDataWriter
+import ru.snowmaze.barstats.errors.PlayerNotFoundException
 import ru.snowmaze.barstats.getSystemFileSystem
 import ru.snowmaze.barstats.models.external.CachedPlayerModel
 import ru.snowmaze.barstats.parse
@@ -15,7 +15,7 @@ import ru.snowmaze.barstats.write
 class PlayersRepository(
     private val apiService: BarAPIService,
     private val fileDataWriter: FileDataWriter,
-    private val dataDir: Path,
+    dataDir: Path,
 ) {
 
     private val playersNamesMutex = Mutex()
@@ -46,7 +46,8 @@ class PlayersRepository(
     suspend fun getPlayer(name: String): CachedPlayerModel {
         val lowerCaseName = name.lowercase()
         if (playersByName[lowerCaseName] == null) downloadPlayers()
-        return playersByName.getValue(lowerCaseName)
+        return playersByName[lowerCaseName]
+            ?: throw PlayerNotFoundException("Player $name not found.")
     }
 
     private suspend fun downloadPlayers() {
