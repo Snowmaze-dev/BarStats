@@ -6,4 +6,5 @@ The application also offers filtering options by map and number of games.
 Currently, two versions are available:
 1. a jar version for Desktops, which offers greater customization but lacks a user interface 
 2. an Android version, which provides a cleaner interface but with less customization. 
+
 You can download both versions in releases.
