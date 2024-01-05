@@ -25,9 +25,11 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import ru.snowmaze.barstats.ui.OptionsScreen
+import ru.snowmaze.barstats.ui.StatsScreen
 import ru.snowmaze.barstats.ui.theme.BarStatsTheme
-import ru.snowmaze.barstats.utils.BackHandler
-import ru.snowmaze.barstats.utils.keyboardAsState
+import ru.snowmaze.barstats.ui.utils.BackHandler
+import ru.snowmaze.barstats.ui.utils.keyboardAsState
 
 class MainActivity : ComponentActivity() {
 

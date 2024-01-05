@@ -1,4 +1,4 @@
-package ru.snowmaze.barstats.utils
+package ru.snowmaze.barstats.ui.utils
 
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner

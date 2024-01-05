@@ -2,6 +2,11 @@ package ru.snowmaze.barstats.usecases
 
 import ru.snowmaze.barstats.models.external.StartPos
 
+const val FRONT = "front"
+const val ECO = "eco"
+const val AIR = "eco"
+const val SEA = "sea"
+
 interface PositionsDeterminer {
 
     val mapName: String
@@ -22,4 +27,8 @@ class IsthmusPositionsDeterminer : PositionsDeterminer {
         return if (startPos.y > 200f) "backline"
         else "other"
     }
+}
+
+class FrontBasedMapPositionsDeterminer(override val mapName: String) : PositionsDeterminer {
+    override fun determinePosition(startPos: StartPos) = FRONT
 }

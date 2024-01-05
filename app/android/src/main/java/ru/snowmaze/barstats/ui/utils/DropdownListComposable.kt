@@ -1,4 +1,4 @@
-package ru.snowmaze.barstats.utils
+package ru.snowmaze.barstats.ui.utils
 
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.DropdownMenuItem

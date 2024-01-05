@@ -1,4 +1,4 @@
-package ru.snowmaze.barstats
+package ru.snowmaze.barstats.ui
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,8 +9,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -20,7 +22,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import ru.snowmaze.barstats.utils.DropDownList
+import androidx.compose.ui.zIndex
+import ru.snowmaze.barstats.MainViewModel
+import ru.snowmaze.barstats.mokoKoinViewModel
+import ru.snowmaze.barstats.ui.utils.DropDownList
 
 @Composable
 fun OptionsScreen() {
@@ -31,6 +36,9 @@ fun OptionsScreen() {
             .fillMaxWidth()
             .fillMaxHeight(0.8f)
     ) {
+        val inputsColors = TextFieldDefaults.colors(
+            focusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+        )
         Row {
             Row(modifier = Modifier.fillMaxWidth()) {
                 val text by mainViewModel.playerName.collectAsState()
@@ -38,14 +46,15 @@ fun OptionsScreen() {
                     value = text,
                     onValueChange = { mainViewModel.playerName.value = it },
                     label = { Text("Player name") },
-                    modifier = Modifier
-                        .weight(1f)
+                    supportingText = { Text(text = "Case-sensitive") },
+                    colors = inputsColors,
+                    modifier = Modifier.weight(1f)
                 )
                 Spacer(modifier = Modifier.width(16.dp))
                 DropDownList(
                     modifier = Modifier.weight(1f),
                     label = { Text("Preset") },
-                    list = listOf("all", "team", "duel", "ffa", "tourney", "coop"),
+                    list = listOf("all", "team", "duel", "ffa"),
                     selectedString = {
                         mainViewModel.preset.value = it
                     }
@@ -59,6 +68,7 @@ fun OptionsScreen() {
             onValueChange = { mapText = it },
             label = { Text("Map") },
             supportingText = { Text("Optional") },
+            colors = inputsColors,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 12.dp)
@@ -71,6 +81,7 @@ fun OptionsScreen() {
             onValueChange = { limitText = it },
             label = { Text("Limit count of games") },
             supportingText = { Text("Optional") },
+            colors = inputsColors,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 12.dp),
@@ -84,6 +95,7 @@ fun OptionsScreen() {
             onValueChange = { minGamesForStats = it },
             label = { Text("Minimum amount of games to show with player stats") },
             supportingText = { Text("Optional") },
+            colors = inputsColors,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 12.dp),

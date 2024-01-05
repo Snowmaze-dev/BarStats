@@ -1,10 +1,15 @@
-package ru.snowmaze.barstats
+@file:OptIn(ExperimentalFoundationApi::class)
 
+package ru.snowmaze.barstats.ui
+
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,26 +17,35 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentSize
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.LazyGridItemScope
-import androidx.compose.foundation.lazy.grid.LazyGridScope
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyItemScope
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import ru.snowmaze.barstats.MainState
+import ru.snowmaze.barstats.MainViewModel
 import ru.snowmaze.barstats.models.MapStat
+import ru.snowmaze.barstats.mokoKoinViewModel
+import ru.snowmaze.barstats.ui.utils.rememberExpandableState
 import ru.snowmaze.barstats.usecases.GetStatisticsResult
 import ru.snowmaze.barstats.usecases.WithPlayerStat
 
@@ -41,7 +55,7 @@ fun StatsScreen(paddingValues: PaddingValues = PaddingValues()) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 12.dp, start = 12.dp, end = 12.dp)
+            .padding(start = 12.dp, end = 12.dp)
             .padding(paddingValues)
     ) {
         val stateCollected by mainViewModel.state.collectAsState()
@@ -54,7 +68,7 @@ fun StatsScreen(paddingValues: PaddingValues = PaddingValues()) {
                     modifier = Modifier
                         .wrapContentHeight()
                         .heightIn(24.dp)
-                        .padding(top = 4.dp)
+                        .padding(top = 8.dp)
                         .align(Alignment.CenterHorizontally)
                 )
             }
@@ -74,17 +88,23 @@ fun StateText(text: String) {
         textAlign = TextAlign.Center,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 8.dp),
+            .padding(top = 20.dp),
         color = MaterialTheme.colorScheme.onSurface
     )
 }
 
 @Composable
 fun ReadyStatsScreen(getStatisticsResult: GetStatisticsResult) {
-    LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 128.dp),
+    val mapStatsExpandableState = rememberExpandableState()
+    val bestTeammatesExpandableState = rememberExpandableState()
+    val lobsterTeammatesExpandableState = rememberExpandableState()
+    val bestAgainstTeammatesExpandableState = rememberExpandableState()
+    val bestOpponentsTeammatesExpandableState = rememberExpandableState()
+    LazyColumn(
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(top = 12.dp)
     ) {
-        item(span = { GridItemSpan(3) }) {
+        item {
             Text(
                 text = "Stats for player ${getStatisticsResult.playerName}",
                 fontWeight = FontWeight.Bold,
@@ -94,57 +114,110 @@ fun ReadyStatsScreen(getStatisticsResult: GetStatisticsResult) {
         }
         val stats = getStatisticsResult.playerStats
         item {
-            StatItem(
-                title = "Total games analyzed",
-                value = "${stats.totalMatchesCount}"
-            )
-        }
-        item {
-            StatItem(
-                title = "Won games",
-                value = "${stats.wonMatchesCount}"
-            )
-        }
-        item {
-            StatItem(
-                title = "Winrate",
-                value = "${stats.winrate}%"
-            )
-        }
-        item {
-            StatItem(
-                title = "Lost games",
-                value = "${stats.lostMatchesCount}"
-            )
-        }
-        if (stats.averageTeammateSkill != null) {
-            item {
+            Row {
                 StatItem(
-                    title = "Average teammate skill",
-                    value = "${stats.averageTeammateSkill}"
+                    title = "Total games analyzed",
+                    value = "${stats.totalMatchesCount}",
+                    modifier = Modifier.weight(1f)
+                )
+                if (stats.averageTeammateSkill != null) {
+                    StatItem(
+                        title = "Average teammate skill",
+                        value = "${stats.averageTeammateSkill}",
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                StatItem(
+                    title = "Winrate",
+                    value = "${stats.winrate}%",
+                    modifier = Modifier.weight(1f)
                 )
             }
         }
-        itemsWithTitle("Maps stats", stats.mapsStats) { index, item ->
-            MapItem(item = item)
+        item {
+            Row {
+                StatItem(
+                    title = "Won games",
+                    value = "${stats.wonMatchesCount}",
+                    modifier = Modifier.weight(1f)
+                )
+                StatItem(
+                    title = "Lost games",
+                    value = "${stats.lostMatchesCount}",
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
-        itemsWithTitle("Best teammates", getStatisticsResult.bestTeammates) { index, item ->
-            PlayerItem(item = item, isEnemies = false)
+
+        addExpandableItemsWithHeader(
+            "Maps stats",
+            stats.mapsStats,
+            mapStatsExpandableState,
+            "map"
+        ) {
+            MapItem(item = it)
         }
-        itemsWithTitle("Lobster teammates", getStatisticsResult.lobsterTeammates) { index, item ->
-            PlayerItem(item = item, isEnemies = false)
+
+        addExpandableItemsWithHeader(
+            "Best teammates",
+            getStatisticsResult.bestTeammates,
+            bestTeammatesExpandableState,
+            "player"
+        ) {
+            PlayerItem(item = it, isEnemies = false)
         }
-        itemsWithTitle("Best against", getStatisticsResult.bestAgainst) { index, item ->
-            PlayerItem(item = item, isEnemies = true)
+        addExpandableItemsWithHeader(
+            "Lobster teammates",
+            getStatisticsResult.lobsterTeammates,
+            lobsterTeammatesExpandableState,
+            "player"
+        ) {
+            PlayerItem(item = it, isEnemies = false)
         }
-        itemsWithTitle("Best opponents", getStatisticsResult.bestOpponents) { index, item ->
-            PlayerItem(item = item, isEnemies = true)
+
+        addExpandableItemsWithHeader(
+            "Best against",
+            getStatisticsResult.bestAgainst,
+            bestAgainstTeammatesExpandableState,
+            "player"
+        ) {
+            PlayerItem(item = it, isEnemies = true)
+        }
+
+        addExpandableItemsWithHeader(
+            "Best opponents",
+            getStatisticsResult.bestOpponents,
+            bestOpponentsTeammatesExpandableState,
+            "player"
+        ) {
+            PlayerItem(item = it, isEnemies = true)
+        }
+    }
+}
+
+fun <T> LazyListScope.addExpandableItemsWithHeader(
+    title: String,
+    items: List<T>?,
+    expandableState: MutableState<Boolean>,
+    itemType: String,
+    itemContent: @Composable LazyItemScope.(T) -> Unit
+) {
+    if (items?.isNotEmpty() == true) ItemsHeader(title, expandableState.value) {
+        expandableState.value = it
+    }
+    if (expandableState.value) {
+        items(items ?: emptyList(), contentType = { itemType }) {
+            itemContent(it)
         }
     }
 }
 
 @Composable
-fun PlayerItem(modifier: Modifier = Modifier, item: WithPlayerStat, isEnemies: Boolean) {
+fun LazyItemScope.PlayerItem(
+    modifier: Modifier = Modifier,
+    item: WithPlayerStat,
+    isEnemies: Boolean
+) {
     val shape = RoundedCornerShape(10.dp)
     Column(
         modifier = Modifier
@@ -157,6 +230,7 @@ fun PlayerItem(modifier: Modifier = Modifier, item: WithPlayerStat, isEnemies: B
             )
             .fillMaxWidth()
             .padding(12.dp)
+            .animateItemPlacement()
             .then(modifier)
     ) {
         Text(text = item.playerData.playerName, fontWeight = FontWeight.SemiBold)
@@ -194,7 +268,7 @@ fun PlayerItem(modifier: Modifier = Modifier, item: WithPlayerStat, isEnemies: B
 }
 
 @Composable
-fun MapItem(modifier: Modifier = Modifier, item: MapStat) {
+fun LazyItemScope.MapItem(modifier: Modifier = Modifier, item: MapStat) {
     val shape = RoundedCornerShape(10.dp)
     Column(
         modifier = Modifier
@@ -207,6 +281,7 @@ fun MapItem(modifier: Modifier = Modifier, item: MapStat) {
             )
             .fillMaxWidth()
             .padding(12.dp)
+            .animateItemPlacement()
             .then(modifier)
     ) {
         Text(text = item.mapName, fontWeight = FontWeight.Bold)
@@ -273,21 +348,59 @@ fun StatItem(modifier: Modifier = Modifier, title: String, value: String) {
     }
 }
 
-inline fun <T> LazyGridScope.itemsWithTitle(
+inline fun LazyListScope.ItemsHeader(
     title: String,
-    items: List<T>?,
-    crossinline itemContent: @Composable LazyGridItemScope.(index: Int, item: T) -> Unit
+    isExpanded: Boolean,
+    crossinline onClickHeader: (isExpanded: Boolean) -> Unit
 ) {
-    if (items.isNullOrEmpty()) return
-    item(span = { GridItemSpan(3) }) {
-        Text(
-            text = title,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
-            color = MaterialTheme.colorScheme.onSurface
-        )
+    stickyHeader(title, contentType = "header") {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .let {
+                    if (isExpanded) it.clip(
+                        RoundedCornerShape(
+                            topStart = 0.dp,
+                            topEnd = 0.dp,
+                            bottomStart = 10.dp,
+                            bottomEnd = 10.dp
+                        )
+                    ) else it
+                }
+                .clickable { onClickHeader(!isExpanded) }
+                .background(MaterialTheme.colorScheme.background)
+                .padding(top = 8.dp, bottom = 4.dp)
+        ) {
+            Box(
+                Modifier
+                    .fillMaxWidth()
+            ) {
+                Text(
+                    text = title,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .align(Alignment.CenterStart),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = 15.sp
+                )
+                Image(
+                    if (isExpanded) Icons.Filled.KeyboardArrowDown
+                    else Icons.Filled.KeyboardArrowUp,
+                    contentDescription = null,
+                    modifier = Modifier.align(
+                        Alignment.CenterEnd
+                    ),
+                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onBackground)
+                )
+            }
+            if (!isExpanded) {
+                Divider(
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp)
+                )
+            }
+        }
     }
-    itemsIndexed(items = items, span = { _, _ ->
-        GridItemSpan(3)
-    }, itemContent = itemContent)
 }
