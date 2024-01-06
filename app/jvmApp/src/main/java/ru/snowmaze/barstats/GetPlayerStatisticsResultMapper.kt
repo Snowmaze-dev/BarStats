@@ -30,7 +30,8 @@ fun GetStatisticsResult.mapToSection(splitter: String): Section {
                     "Won matches" to stats.wonMatchesCount,
                     "Lost matches" to stats.lostMatchesCount,
                     "Winrate" to stats.winrate.toString() + "%",
-                    "Average teammate skill" to stats.averageTeammateSkill
+                    "Average teammate skill" to stats.averageTeammateSkill,
+                    "Average ${stats.preset} enemy skill" to stats.averageEnemySkill,
                 )
             )
             val unbalancedMatchesStats = unbalancedMatchesStats
