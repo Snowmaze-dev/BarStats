@@ -5,12 +5,14 @@ import ru.snowmaze.barstats.models.external.AbstractMatchModel
 class PlayerData(
     val userId: Long,
     val playerName: String,
+    val preset: String,
     val totalMatchesCount: Int,
     val accountedMatchesCount: Int,
     val wonMatchesCount: Int,
     val lostMatchesCount: Int,
     val winrate: Float,
     val averageTeammateSkill: Float?,
+    val averageEnemySkill: Float?,
     val matches: List<AbstractMatchModel>,
     val mapsStats: List<MapStat>?
 )

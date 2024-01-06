@@ -71,6 +71,7 @@ class GetPlayerStatsUseCase(
         val extendedMatches = if (shouldGatherSkillsStats) data.parallelMap(LOAD_MATCHES_BATCH_SIZE) { match ->
             getMatchesRepository.getExtendedMatch(match.id)
         } else data
+        val isDuel = preset == "duel"
 
         val mapsData = if (gatherDataModel.shouldGatherMapsStats) mutableMapOf<String, IntermediateMapModel>() else null
         val playerNames = playersRepository.getPlayerNicknames(userId)!!
@@ -91,13 +92,19 @@ class GetPlayerStatsUseCase(
                     }
                 }
                 val isWon = playerTeam.winningTeam
+                if (isDuel) {
+                    for (team in match.teams) {
+                        if (team !is MatchTeamModel || team == playerTeam) continue
+                        val enemyPlayerSkill = team.players.firstOrNull()?.getSkill(stringFormat)
+                            ?: continue
+                        teammatesCount++
+                        teammatesSkill += enemyPlayerSkill
+                    }
+                }
                 if (playerTeam is MatchTeamModel) {
                     playerTeam.players.forEach {
-                        val skill = try {
-                            stringFormat.decodeFromString<FloatArray>(it.skill).firstOrNull()
-                        } catch (e: Exception) {
-                            it.skill.toFloatOrNull()
-                        } ?: return@forEach
+                        if (it.userId == userId) return@forEach
+                        val skill = it.getSkill(stringFormat) ?: return@forEach
                         teammatesCount++
                         teammatesSkill += skill
                     }
@@ -116,17 +123,19 @@ class GetPlayerStatsUseCase(
                 add(match)
             }
         }
-
+        val averagePlayersSkill = (teammatesSkill / teammatesCount).takeUnless { it.isNaN() }
         return PlayerData(
             userId = userId,
             playerName = playerName,
+            preset = preset,
             totalMatchesCount = totalMatchesCount,
             accountedMatchesCount = accountedMatchesCount,
             wonMatchesCount = wonMatchesCount,
             lostMatchesCount = lostMatchesCount,
             winrate = (wonMatchesCount / accountedMatchesCount.toFloat()) * 100f,
             matches = mappedData,
-            averageTeammateSkill = (teammatesSkill / teammatesCount).takeUnless { it.isNaN() },
+            averageTeammateSkill = if (isDuel) null else averagePlayersSkill,
+            averageEnemySkill = if (isDuel) averagePlayersSkill else null,
             mapsStats = mapsData?.map {
                 val value = it.value
                 MapStat(value.mapName, value.wins, value.loses)

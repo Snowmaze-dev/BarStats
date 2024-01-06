@@ -149,6 +149,13 @@ fun ReadyStatsScreen(state: MainState) {
                         modifier = Modifier.weight(1f)
                     )
                 }
+                if (stats.averageEnemySkill != null) {
+                    StatItem(
+                        title = "Average ${stats.preset} enemy skill",
+                        value = "${stats.averageEnemySkill}",
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
         }
 

@@ -6,7 +6,7 @@ plugins {
     id("com.github.johnrengelman.shadow") version "7.1.2"
 }
 group = "ru.snowmaze.barstats"
-version = "0.0.4"
+version = "0.0.5"
 
 kotlin {
     jvmToolchain(8)

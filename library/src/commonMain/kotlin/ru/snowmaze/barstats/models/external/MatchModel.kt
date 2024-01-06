@@ -2,6 +2,8 @@ package ru.snowmaze.barstats.models.external
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.StringFormat
+import kotlinx.serialization.decodeFromString
 
 @Serializable
 data class MatchModel(
@@ -81,6 +83,13 @@ data class PlayerModel(
     val userId: Long? = null,
     val startPos: StartPos? = null
 ) : AbstractPlayerModel() {
+
+    fun getSkill(stringFormat: StringFormat) = try {
+        stringFormat.decodeFromString<FloatArray>(skill).firstOrNull()
+    } catch (e: Exception) {
+        skill.toFloatOrNull()
+    }
+
     override fun toString(): String {
         return "PlayerModel(id=$id, playerId=$playerId, name='$name')"
     }
