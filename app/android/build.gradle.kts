@@ -11,8 +11,8 @@ android {
         applicationId = "ru.snowmaze.barstats"
         minSdk = 21
         targetSdk = 34
-        versionCode = 3
-        versionName = "0.0.3"
+        versionCode = 4
+        versionName = "0.0.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

@@ -2,6 +2,7 @@
 
 package ru.snowmaze.barstats.ui
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
@@ -44,10 +46,9 @@ import androidx.compose.ui.unit.sp
 import ru.snowmaze.barstats.MainState
 import ru.snowmaze.barstats.MainViewModel
 import ru.snowmaze.barstats.models.MapStat
+import ru.snowmaze.barstats.models.WithPlayerStat
 import ru.snowmaze.barstats.mokoKoinViewModel
 import ru.snowmaze.barstats.ui.utils.rememberExpandableState
-import ru.snowmaze.barstats.usecases.GetStatisticsResult
-import ru.snowmaze.barstats.usecases.WithPlayerStat
 
 @Composable
 fun StatsScreen(paddingValues: PaddingValues = PaddingValues()) {
@@ -55,23 +56,14 @@ fun StatsScreen(paddingValues: PaddingValues = PaddingValues()) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 12.dp, end = 12.dp)
             .padding(paddingValues)
+            .animateContentSize()
     ) {
         val stateCollected by mainViewModel.state.collectAsState()
         when (val state = stateCollected) {
-            is MainState.Ready -> ReadyStatsScreen(getStatisticsResult = state.getStatisticsResult)
+            is MainState.Ready, is MainState.PartOfDataReady -> ReadyStatsScreen(state)
 
-            is MainState.Loading -> Column(Modifier.fillMaxWidth()) {
-                StateText("Loading ${state.playerName} stats.")
-                CircularProgressIndicator(
-                    modifier = Modifier
-                        .wrapContentHeight()
-                        .heightIn(24.dp)
-                        .padding(top = 8.dp)
-                        .align(Alignment.CenterHorizontally)
-                )
-            }
+            is MainState.Loading -> LoadingPlayerStats("Loading ${state.playerName} stats.")
 
             is MainState.Empty -> StateText("Click load stats button.")
 
@@ -88,38 +80,68 @@ fun StateText(text: String) {
         textAlign = TextAlign.Center,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 20.dp),
+            .padding(top = 20.dp, start = 12.dp, end = 12.dp),
         color = MaterialTheme.colorScheme.onSurface
     )
 }
 
 @Composable
-fun ReadyStatsScreen(getStatisticsResult: GetStatisticsResult) {
+fun ReadyStatsScreen(state: MainState) {
     val mapStatsExpandableState = rememberExpandableState()
     val bestTeammatesExpandableState = rememberExpandableState()
     val lobsterTeammatesExpandableState = rememberExpandableState()
     val bestAgainstTeammatesExpandableState = rememberExpandableState()
     val bestOpponentsTeammatesExpandableState = rememberExpandableState()
+    val horizontalPadding = PaddingValues(start = 12.dp, end = 12.dp)
+    val playerData = when (state) {
+        is MainState.PartOfDataReady -> state.data
+        is MainState.Ready -> state.getStatisticsResult.playerData
+        else -> throw IllegalStateException()
+    }
     LazyColumn(
         modifier = Modifier.fillMaxWidth(),
         contentPadding = PaddingValues(top = 12.dp)
     ) {
         item {
             Text(
-                text = "Stats for player ${getStatisticsResult.playerName}",
+                text = "Stats for player ${playerData.playerName}",
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
+                modifier = Modifier
+                    .padding(top = 8.dp, bottom = 4.dp)
+                    .padding(horizontalPadding),
                 color = MaterialTheme.colorScheme.onSurface
             )
         }
-        val stats = getStatisticsResult.playerStats
+        val stats = playerData
         item {
-            Row {
+            Row(modifier = Modifier.padding(horizontalPadding)) {
                 StatItem(
                     title = "Total games analyzed",
                     value = "${stats.totalMatchesCount}",
                     modifier = Modifier.weight(1f)
                 )
+                Spacer(modifier = Modifier.width(8.dp))
+                StatItem(
+                    title = "Winrate",
+                    value = getWinrateString(stats.winrate),
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+        item {
+            Row(modifier = Modifier.padding(horizontalPadding)) {
+                StatItem(
+                    title = "Won games",
+                    value = "${stats.wonMatchesCount}",
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                StatItem(
+                    title = "Lost games",
+                    value = "${stats.lostMatchesCount}",
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
                 if (stats.averageTeammateSkill != null) {
                     StatItem(
                         title = "Average teammate skill",
@@ -127,71 +149,82 @@ fun ReadyStatsScreen(getStatisticsResult: GetStatisticsResult) {
                         modifier = Modifier.weight(1f)
                     )
                 }
-                StatItem(
-                    title = "Winrate",
-                    value = "${stats.winrate}%",
-                    modifier = Modifier.weight(1f)
-                )
             }
         }
-        item {
-            Row {
-                StatItem(
-                    title = "Won games",
-                    value = "${stats.wonMatchesCount}",
-                    modifier = Modifier.weight(1f)
-                )
-                StatItem(
-                    title = "Lost games",
-                    value = "${stats.lostMatchesCount}",
-                    modifier = Modifier.weight(1f)
-                )
-            }
+
+        val allyPlayerItemCreator: @Composable LazyItemScope.(WithPlayerStat) -> Unit = {
+            PlayerItem(modifier = Modifier.padding(horizontalPadding), item = it, isEnemies = false)
+        }
+
+        val enemyPlayerItemCreator: @Composable LazyItemScope.(WithPlayerStat) -> Unit = {
+            PlayerItem(modifier = Modifier.padding(horizontalPadding), item = it, isEnemies = true)
         }
 
         addExpandableItemsWithHeader(
             "Maps stats",
             stats.mapsStats,
             mapStatsExpandableState,
-            "map"
+            "map",
+            horizontalPadding
         ) {
             MapItem(item = it)
+        }
+
+        val getStatisticsResult = if (state is MainState.Ready) state.getStatisticsResult
+        else {
+            item { LoadingPlayerStats("Loading ${playerData.playerName} teammates and opponents stats.") }
+            return@LazyColumn
         }
 
         addExpandableItemsWithHeader(
             "Best teammates",
             getStatisticsResult.bestTeammates,
             bestTeammatesExpandableState,
-            "player"
-        ) {
-            PlayerItem(item = it, isEnemies = false)
-        }
+            "player",
+            horizontalPadding,
+            allyPlayerItemCreator
+        )
+
         addExpandableItemsWithHeader(
             "Lobster teammates",
             getStatisticsResult.lobsterTeammates,
             lobsterTeammatesExpandableState,
-            "player"
-        ) {
-            PlayerItem(item = it, isEnemies = false)
-        }
+            "player",
+            horizontalPadding,
+            allyPlayerItemCreator
+        )
 
         addExpandableItemsWithHeader(
             "Best against",
             getStatisticsResult.bestAgainst,
             bestAgainstTeammatesExpandableState,
-            "player"
-        ) {
-            PlayerItem(item = it, isEnemies = true)
-        }
+            "player",
+            horizontalPadding,
+            enemyPlayerItemCreator
+        )
 
         addExpandableItemsWithHeader(
             "Best opponents",
             getStatisticsResult.bestOpponents,
             bestOpponentsTeammatesExpandableState,
-            "player"
-        ) {
-            PlayerItem(item = it, isEnemies = true)
-        }
+            "player",
+            horizontalPadding,
+            enemyPlayerItemCreator
+        )
+    }
+}
+
+@Composable
+fun LoadingPlayerStats(text: String) {
+    Column(Modifier.fillMaxWidth()) {
+        StateText(text)
+        CircularProgressIndicator(
+            modifier = Modifier
+                .wrapContentHeight()
+                .heightIn(24.dp)
+                .padding(top = 8.dp)
+                .align(Alignment.CenterHorizontally)
+        )
     }
 }
 
@@ -200,9 +233,10 @@ fun <T> LazyListScope.addExpandableItemsWithHeader(
     items: List<T>?,
     expandableState: MutableState<Boolean>,
     itemType: String,
+    paddingValues: PaddingValues,
     itemContent: @Composable LazyItemScope.(T) -> Unit
 ) {
-    if (items?.isNotEmpty() == true) ItemsHeader(title, expandableState.value) {
+    if (items?.isNotEmpty() == true) addItemsHeader(title, expandableState.value, paddingValues) {
         expandableState.value = it
     }
     if (expandableState.value) {
@@ -229,7 +263,7 @@ fun LazyItemScope.PlayerItem(
                 shape = shape
             )
             .fillMaxWidth()
-            .padding(12.dp)
+            .padding(vertical = 12.dp)
             .animateItemPlacement()
             .then(modifier)
     ) {
@@ -242,20 +276,21 @@ fun LazyItemScope.PlayerItem(
             Column(modifier = Modifier.fillMaxWidth(0.5f)) {
                 val totalGamesWithText = if (isEnemies) "Games against" else "Games together"
                 Text(text = totalGamesWithText + System.lineSeparator() + item.playerStats.totalGamesTogether)
-                val withText = "Winrate " + if (isEnemies) "against player" else "with teammate"
+                val withText =
+                    "Winrate " + if (isEnemies) "against player" else "with teammate"
                 Text(
                     modifier = Modifier.padding(top = 4.dp),
-                    text = withText + " " + item.playerStats.winrate + "%"
+                    text = withText + System.lineSeparator() + getWinrateString(item.playerStats.winrate)
                 )
             }
 
             Column(
                 Modifier
                     .padding(start = 8.dp)
-                    .align(Alignment.CenterEnd)
+                    .align(Alignment.TopEnd)
                     .fillMaxWidth(0.5f)
             ) {
-                Text(text = "Player overall winrate " + item.playerData.winrate + "%")
+                Text(text = "Player overall winrate " + getWinrateString(item.playerData.winrate))
                 val winsWith = "Wins " + if (isEnemies) "against player" else "with teammate"
                 Text(
                     modifier = Modifier.padding(top = 4.dp),
@@ -294,7 +329,7 @@ fun LazyItemScope.MapItem(modifier: Modifier = Modifier, item: MapStat) {
                 Text(text = "Total matches count" + System.lineSeparator() + item.totalMatchesCount.toString())
                 Text(
                     modifier = Modifier.padding(top = 4.dp),
-                    text = "Winrate" + System.lineSeparator() + item.winrate + "%"
+                    text = "Winrate" + System.lineSeparator() + getWinrateString(item.winrate)
                 )
             }
 
@@ -307,7 +342,7 @@ fun LazyItemScope.MapItem(modifier: Modifier = Modifier, item: MapStat) {
                 Text(text = "Wins on this map${System.lineSeparator()}" + item.wins)
                 Text(
                     modifier = Modifier.padding(top = 4.dp),
-                    text = "Loses${System.lineSeparator()}" + item.wins
+                    text = "Loses${System.lineSeparator()}" + item.loses
                 )
             }
         }
@@ -319,7 +354,7 @@ fun StatItem(modifier: Modifier = Modifier, title: String, value: String) {
     val shape = RoundedCornerShape(10.dp)
     Column(
         modifier = Modifier
-            .padding(8.dp)
+            .padding(top = 8.dp, bottom = 8.dp)
             .clip(shape)
             .clickable {}
             .background(
@@ -348,33 +383,22 @@ fun StatItem(modifier: Modifier = Modifier, title: String, value: String) {
     }
 }
 
-inline fun LazyListScope.ItemsHeader(
+inline fun LazyListScope.addItemsHeader(
     title: String,
     isExpanded: Boolean,
+    paddingValues: PaddingValues,
     crossinline onClickHeader: (isExpanded: Boolean) -> Unit
 ) {
     stickyHeader(title, contentType = "header") {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .let {
-                    if (isExpanded) it.clip(
-                        RoundedCornerShape(
-                            topStart = 0.dp,
-                            topEnd = 0.dp,
-                            bottomStart = 10.dp,
-                            bottomEnd = 10.dp
-                        )
-                    ) else it
-                }
                 .clickable { onClickHeader(!isExpanded) }
                 .background(MaterialTheme.colorScheme.background)
                 .padding(top = 8.dp, bottom = 4.dp)
+                .padding(paddingValues)
         ) {
-            Box(
-                Modifier
-                    .fillMaxWidth()
-            ) {
+            Box(Modifier.fillMaxWidth()) {
                 Text(
                     text = title,
                     fontWeight = FontWeight.Bold,
@@ -403,4 +427,8 @@ inline fun LazyListScope.ItemsHeader(
             }
         }
     }
+}
+
+fun getWinrateString(winrate: Float): String {
+    return "%.2f".format(winrate) + "%"
 }

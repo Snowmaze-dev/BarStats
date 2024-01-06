@@ -1,6 +1,7 @@
 package ru.snowmaze.barstats
 
 import dev.icerock.moko.mvvm.viewmodel.ViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,16 +38,21 @@ class MainViewModel(private val getStatisticsUseCase: GetStatisticsUseCase) : Vi
             _state.value = MainState.Loading(playerName)
             val result = try {
                 withContext(Dispatchers.IO) {
-                    println("getPlayerStats $map $limitCount $minGamesForStats")
                     getStatisticsUseCase.getStatistics(
                         playerName = playerName,
                         preset = preset,
                         map = map.takeIf { !it.isNullOrBlank() },
                         limit = limitCount,
                         minGamesForStats = minGamesForStats ?: 10
-                    )
+                    ) { playerData ->
+                        withContext(Dispatchers.Main) {
+                            _state.value = MainState.PartOfDataReady(playerData)
+                        }
+                    }
                 }
             } catch (e: Exception) {
+                if (e is CancellationException) return@launch
+                e.printStackTrace()
                 val message = e.message
                 _state.value = MainState.Error(
                     if (message.isNullOrBlank()) e.javaClass.simpleName

@@ -4,7 +4,7 @@ import ru.snowmaze.barstats.models.external.StartPos
 
 const val FRONT = "front"
 const val ECO = "eco"
-const val AIR = "eco"
+const val AIR = "air"
 const val SEA = "sea"
 
 interface PositionsDeterminer {

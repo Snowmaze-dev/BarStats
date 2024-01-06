@@ -6,6 +6,7 @@ import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.hocon.Hocon
 import kotlinx.serialization.json.Json
 import okio.Path.Companion.toOkioPath
@@ -16,6 +17,7 @@ import ru.snowmaze.barstats.usecases.GetStatisticsUseCase
 import ru.snowmaze.barstats.usecases.PlayersTopUseCase
 import java.io.File
 
+@OptIn(ExperimentalSerializationApi::class)
 fun main(args: Array<String>) = runBlocking(Dispatchers.IO) {
     val jsonSerializer = Json {
         ignoreUnknownKeys = true
@@ -54,7 +56,8 @@ fun main(args: Array<String>) = runBlocking(Dispatchers.IO) {
 
     val service = ktorfit.create<BarAPIService>()
     val getMatchesRepository = GetMatchesRepository(service, json, dataDir)
-    val playersRepository = PlayersRepository(service, json, dataDir)
+    val showInfo = { info: String -> println(info) }
+    val playersRepository = PlayersRepository(service, json, dataDir, showInfo)
     val getPlayerStatsUseCase =
         GetPlayerStatsUseCase(getMatchesRepository, playersRepository, jsonSerializer)
     val fromDate = params["from_date"]
@@ -63,14 +66,15 @@ fun main(args: Array<String>) = runBlocking(Dispatchers.IO) {
 
     when (type) {
         "get_player_stats" -> {
-            val getStatisticsUseCase = GetStatisticsUseCase(getPlayerStatsUseCase)
+            val getStatisticsUseCase = GetStatisticsUseCase(getPlayerStatsUseCase, showInfo)
             val playerName = params["player"]
                 ?: throw IllegalArgumentException("'player' field not specified.")
             println("Getting player $playerName stats for analyze")
             section = getStatisticsUseCase.getStatistics(
                 playerName = playerName,
                 preset = preset,
-                shouldPrintStatsWithOtherPlayers = params["should_gather_additional_data"].toBoolean(),
+                shouldPrintStatsWithOtherPlayers = params["should_gather_additional_data"]
+                    .toBoolean(),
                 map = params["map"],
                 fromTimeSeconds = fromDate?.let {
                     runCatching {
@@ -80,8 +84,8 @@ fun main(args: Array<String>) = runBlocking(Dispatchers.IO) {
                         null
                     }
                 },
-                countOfTeammatesAndEnemiesToShow = params["count_of_teammates_and_enemies_show"]?.toIntOrNull()
-                    ?: 50,
+                countOfTeammatesAndEnemiesToShow = params["count_of_teammates_and_enemies_show"]
+                    ?.toIntOrNull() ?: 50,
                 minGamesForStats = params["min_games_for_stats"]?.toIntOrNull() ?: 10,
                 limit = params["count_of_last_games"]?.toIntOrNull()
             ).mapToSection(params["splitter_style"] ?: " | ")

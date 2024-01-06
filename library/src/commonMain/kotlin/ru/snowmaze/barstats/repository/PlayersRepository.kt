@@ -16,6 +16,7 @@ class PlayersRepository(
     private val apiService: BarAPIService,
     private val fileDataWriter: FileDataWriter,
     dataDir: Path,
+    private val showInfo: ((String) -> Unit)? = null
 ) {
 
     private val playersNamesMutex = Mutex()
@@ -28,9 +29,7 @@ class PlayersRepository(
 
     suspend fun addPlayerNickname(userId: Long, name: String) {
         playersNamesMutex.withLock {
-            val stateFlow = playerNicknamesById.getOrPut(userId) {
-                MutableStateFlow(setOf(name))
-            }
+            val stateFlow = playerNicknamesById.getOrPut(userId) { MutableStateFlow(setOf(name)) }
             if (stateFlow.value.contains(name)) return@withLock
             stateFlow.value += name
         }
@@ -66,7 +65,7 @@ class PlayersRepository(
                 getPlayers()
             }
         } else {
-            println("Downloading players list")
+            showInfo?.invoke("Downloading players list")
             val dataList = apiService.getPlayers()
             fileDataWriter.write(dataList, playersFile)
             dataList

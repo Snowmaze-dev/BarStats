@@ -44,14 +44,16 @@ class MainActivity : ComponentActivity() {
                 val focusManager = LocalFocusManager.current
                 val isKeyboardOpen by keyboardAsState()
                 var enabled by remember { mutableStateOf(true) }
-                val bottomSheetState =
-                    rememberStandardBottomSheetState(SheetValue.Expanded, confirmValueChange = {
+                val bottomSheetState = rememberStandardBottomSheetState(
+                    initialValue = SheetValue.Expanded,
+                    confirmValueChange = {
                         if (isKeyboardOpen) {
                             return@rememberStandardBottomSheetState false
                         }
                         enabled = it == SheetValue.Expanded
                         true
-                    })
+                    }
+                )
                 val partiallyExpand = suspend {
                     focusManager.clearFocus()
                     bottomSheetState.partialExpand()

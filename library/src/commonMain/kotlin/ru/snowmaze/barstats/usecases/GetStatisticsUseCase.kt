@@ -1,29 +1,21 @@
 package ru.snowmaze.barstats.usecases
 
+import ru.snowmaze.barstats.models.GetStatisticsResult
 import ru.snowmaze.barstats.models.IntermediateMatchesModel
 import ru.snowmaze.barstats.models.PlayerData
 import ru.snowmaze.barstats.models.PlayerStats
 import ru.snowmaze.barstats.models.UnbalancedMatchesStats
+import ru.snowmaze.barstats.models.WithPlayerStat
 import ru.snowmaze.barstats.models.external.MatchModel
 import ru.snowmaze.barstats.models.external.MatchTeamModel
 import ru.snowmaze.barstats.models.external.PlayerModel
 import ru.snowmaze.barstats.parallelMap
 import kotlin.math.abs
 
-class GetStatisticsResult(
-    val playerId: Long,
-    val playerName: String,
-    val playerStats: PlayerData,
-    val unbalancedMatchesStats: UnbalancedMatchesStats? = null,
-    val bestTeammates: List<WithPlayerStat>,
-    val lobsterTeammates: List<WithPlayerStat>,
-    val bestAgainst: List<WithPlayerStat>,
-    val bestOpponents: List<WithPlayerStat>,
-)
-
-class WithPlayerStat(val playerData: PlayerData, val playerStats: PlayerStats)
-
-class GetStatisticsUseCase(private val getPlayersStatsUseCase: GetPlayerStatsUseCase) {
+class GetStatisticsUseCase(
+    private val getPlayersStatsUseCase: GetPlayerStatsUseCase,
+    private val showInfo: ((String) -> Unit)? = null
+) {
 
     suspend fun getStatistics(
         playerName: String,
@@ -34,6 +26,7 @@ class GetStatisticsUseCase(private val getPlayersStatsUseCase: GetPlayerStatsUse
         map: String? = null,
         fromTimeSeconds: Long? = null,
         shouldPrintStatsWithOtherPlayers: Boolean = false,
+        onPartOfDataLoaded: suspend (PlayerData) -> Unit = {}
     ): GetStatisticsResult {
         val data = getPlayersStatsUseCase.getPlayerStats(
             playerName = playerName,
@@ -46,7 +39,8 @@ class GetStatisticsUseCase(private val getPlayersStatsUseCase: GetPlayerStatsUse
                 shouldGatherMapsStats = true
             )
         )
-        println("Analyzing ${data.matches.size} matches")
+        onPartOfDataLoaded(data)
+        showInfo?.invoke("Analyzing ${data.matches.size} matches")
         val teammatesMatchesStat = mutableMapOf<Long, IntermediateMatchesModel>()
         val enemiesMatchesStat = mutableMapOf<Long, IntermediateMatchesModel>()
         val matches = data.matches as List<MatchModel>
@@ -85,7 +79,7 @@ class GetStatisticsUseCase(private val getPlayersStatsUseCase: GetPlayerStatsUse
 
         val gamesWithFilter = teammatesStatMap.filterByMinGames(minGamesForStats)
         val bestTeammatesKeys = gamesWithFilter.keys.asSequence().filter {
-            teammatesStatMap.getValue(it).winrate > 50f
+            teammatesStatMap.getValue(it).winrate >= 50f
         }.sortedByDescending { teammatesStatMap.getValue(it).winrate }
             .take(countOfTeammatesAndEnemiesToShow).toList()
 
@@ -97,7 +91,7 @@ class GetStatisticsUseCase(private val getPlayersStatsUseCase: GetPlayerStatsUse
         val enemiesStatMap = enemiesMatchesStat.mapToStats(true)
         val enemiesStatFiltered = enemiesStatMap.filterByMinGames(minGamesForStats)
         val bestAgainstKeys = enemiesStatFiltered.keys.asSequence().filter {
-            enemiesStatMap.getValue(it).winrate > 50f
+            enemiesStatMap.getValue(it).winrate >= 50f
         }.sortedByDescending {
             enemiesStatMap.getValue(it).winrate
         }.take(countOfTeammatesAndEnemiesToShow).toList()
@@ -128,7 +122,7 @@ class GetStatisticsUseCase(private val getPlayersStatsUseCase: GetPlayerStatsUse
         return GetStatisticsResult(
             playerId = data.userId,
             playerName = data.playerName,
-            playerStats = data,
+            playerData = data,
             unbalancedMatchesStats = unbalancedMatchesStats,
             bestTeammates = mapTeammates(bestTeammatesKeys),
             lobsterTeammates = mapTeammates(lobsterTeammatesKeys),

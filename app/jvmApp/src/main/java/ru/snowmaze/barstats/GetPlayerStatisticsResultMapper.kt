@@ -1,12 +1,12 @@
 package ru.snowmaze.barstats
 
+import ru.snowmaze.barstats.models.GetStatisticsResult
 import ru.snowmaze.barstats.models.PlayerData
 import ru.snowmaze.barstats.models.PlayerStats
-import ru.snowmaze.barstats.usecases.GetStatisticsResult
-import ru.snowmaze.barstats.usecases.WithPlayerStat
+import ru.snowmaze.barstats.models.WithPlayerStat
 
 fun GetStatisticsResult.mapToSection(splitter: String): Section {
-    val stats = this.playerStats
+    val stats = this.playerData
     val mapPlayedWith: List<WithPlayerStat>.(isEnemies: Boolean) -> List<SectionValue> = { isEnemies ->
         mapIndexed { index, withStats ->
             SectionValue.StringSectionValue(
