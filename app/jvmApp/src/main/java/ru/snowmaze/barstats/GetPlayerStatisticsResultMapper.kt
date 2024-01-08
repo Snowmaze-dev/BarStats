@@ -4,6 +4,7 @@ import ru.snowmaze.barstats.models.GetStatisticsResult
 import ru.snowmaze.barstats.models.PlayerData
 import ru.snowmaze.barstats.models.PlayerStats
 import ru.snowmaze.barstats.models.WithPlayerStat
+import java.util.concurrent.TimeUnit
 
 fun GetStatisticsResult.mapToSection(splitter: String): Section {
     val stats = this.playerData
@@ -32,6 +33,7 @@ fun GetStatisticsResult.mapToSection(splitter: String): Section {
                     "Winrate" to stats.winrate.toString() + "%",
                     "Average teammate skill" to stats.averageTeammateSkill,
                     "Average ${stats.preset} enemy skill" to stats.averageEnemySkill,
+                    "Hours spent in analyzed games" to TimeUnit.MILLISECONDS.toHours(stats.overallPlayerPlaytimeMs),
                 )
             )
             val unbalancedMatchesStats = unbalancedMatchesStats

@@ -36,11 +36,12 @@ class GetStatisticsUseCase(
             fromTime = fromTimeSeconds,
             gatherDataModel = GatherDataModel(
                 shouldGatherSkillsStats = true,
-                shouldGatherMapsStats = true
+                shouldGatherMapsStats = true,
+                shouldAddMatchesToResult = true
             )
         )
         onPartOfDataLoaded(data)
-        showInfo?.invoke("Analyzing ${data.matches.size} matches")
+        showInfo?.invoke("Analyzing ${data.matches?.size} matches")
         val teammatesMatchesStat = mutableMapOf<Long, IntermediateMatchesModel>()
         val enemiesMatchesStat = mutableMapOf<Long, IntermediateMatchesModel>()
         val matches = data.matches as List<MatchModel>
@@ -51,16 +52,18 @@ class GetStatisticsUseCase(
             for (allyPlayer in playerTeam.players) {
                 if (allyPlayer.userId == data.userId || allyPlayer.userId == null) continue
                 val model = teammatesMatchesStat.getOrPut(allyPlayer.userId) {
-                    IntermediateMatchesModel(allyPlayer.name, 0, 0)
+                    IntermediateMatchesModel(allyPlayer.name, 0, 0, mutableListOf())
                 }
+                model.matchesTogether?.add(match)
                 if (isWon) model.wins++ else model.loses++
             }
             for (team in match.teams) {
                 if (team == playerTeam) continue
                 for (player in team.players) {
                     val model = enemiesMatchesStat.getOrPut(player.userId ?: continue) {
-                        IntermediateMatchesModel(player.name, 0, 0)
+                        IntermediateMatchesModel(player.name, 0, 0, mutableListOf())
                     }
+                    model.matchesTogether?.add(match)
                     if (team.winningTeam) model.wins++ else model.loses++
                 }
             }
@@ -144,7 +147,8 @@ class GetStatisticsUseCase(
                 totalGamesTogether = totalGamesTogether,
                 wonGames = model.wins,
                 lostGames = model.loses,
-                winrate = ((if (isEnemies) model.loses else model.wins) / totalGamesTogether.toFloat()) * 100
+                winrate = ((if (isEnemies) model.loses else model.wins) / totalGamesTogether.toFloat()) * 100,
+                matchesTogether = model.matchesTogether
             )
         }
 

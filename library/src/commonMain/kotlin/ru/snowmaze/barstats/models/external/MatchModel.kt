@@ -30,6 +30,7 @@ data class MatchModel(
 ) : AbstractMatchModel() {
 
     override val mapName = map.scriptName
+    override val mapFilename: String? = map.fileName
 
     fun playerTeam(userId: Long) = teams.firstOrNull {
         it.players.firstOrNull { player -> player.userId == userId } != null

@@ -15,6 +15,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -68,9 +69,14 @@ class MainActivity : ComponentActivity() {
                         bottomSheetState.expand()
                     }
                 }
-                BackHandler(enabled) {
-                    coroutineScope.launch {
-                        partiallyExpand()
+                val selectedPlayerStat by mainViewModel.selectedPlayerStat.collectAsState()
+                BackHandler(enabled || selectedPlayerStat != null) {
+                    if (mainViewModel.selectedPlayerStat.value != null) {
+                        mainViewModel.selectedPlayerStat.value = null
+                    } else {
+                        coroutineScope.launch {
+                            partiallyExpand()
+                        }
                     }
                 }
                 LaunchedEffect(key1 = "state") {
@@ -80,6 +86,7 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
+                val peekHeight = 156.dp
                 BottomSheetScaffold(
                     scaffoldState = scaffoldState,
                     topBar = {
@@ -97,9 +104,9 @@ class MainActivity : ComponentActivity() {
                     sheetContent = { OptionsScreen() },
                     containerColor = MaterialTheme.colorScheme.background,
                     sheetContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    sheetPeekHeight = 156.dp
+                    sheetPeekHeight = peekHeight
                 ) {
-                    StatsScreen(it)
+                    StatsScreen(it, peekHeight)
                 }
             }
         }

@@ -2,7 +2,7 @@ package ru.snowmaze.barstats
 
 import kotlinx.datetime.*
 
-expect fun parseDefaultDateToSeconds(date: String): Long
+expect fun parseDefaultDateToMillis(date: String): Long
 
 fun defaultParseDateToSeconds(date: String): Long {
     val parts = date.split(".")
@@ -14,7 +14,7 @@ fun defaultParseDateToSeconds(date: String): Long {
             LocalDate(year, month, day),
             LocalTime(0, 0, 0, 0)
         ).toInstant(TimeZone.UTC).epochSeconds
-    } else parseDefaultDateToSeconds(date))
+    } else (parseDefaultDateToMillis(date) / 1000))
 }
 
 fun defaultMultiplatformParseDateToSeconds(date: String): Long {

@@ -9,6 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -41,36 +42,58 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.snowmaze.barstats.MainState
 import ru.snowmaze.barstats.MainViewModel
+import ru.snowmaze.barstats.SelectedPlayerStat
 import ru.snowmaze.barstats.models.MapStat
 import ru.snowmaze.barstats.models.WithPlayerStat
 import ru.snowmaze.barstats.mokoKoinViewModel
 import ru.snowmaze.barstats.ui.utils.rememberExpandableState
+import java.util.concurrent.TimeUnit
 
 @Composable
-fun StatsScreen(paddingValues: PaddingValues = PaddingValues()) {
+fun StatsScreen(paddingValues: PaddingValues = PaddingValues(), peekHeight: Dp) {
     val mainViewModel = mokoKoinViewModel<MainViewModel>()
+    val selectedPlayerStat by mainViewModel.selectedPlayerStat.collectAsState()
+    val stateCollected by mainViewModel.state.collectAsState()
+    val state = stateCollected
+    when {
+        selectedPlayerStat != null -> MatchesScreen(selectedPlayerStat!!, peekHeight)
+        else -> when (state) {
+
+            is MainState.Ready, is MainState.PartOfDataReady -> ReadyStatsScreen(state, peekHeight)
+
+            is MainState.Loading -> StubContainer(paddingValues) {
+                LoadingPlayerStats("Loading ${state.playerName} stats.")
+            }
+
+            is MainState.Empty -> StubContainer(paddingValues) {
+                StateText("Click load stats button.")
+            }
+
+            is MainState.Error -> StubContainer(paddingValues) {
+                StateText("Some error occurred: ${state.message}.")
+            }
+        }
+    }
+}
+
+@Composable
+private fun StubContainer(
+    paddingValues: PaddingValues,
+    content: @Composable ColumnScope.() -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(paddingValues)
-            .animateContentSize()
-    ) {
-        val stateCollected by mainViewModel.state.collectAsState()
-        when (val state = stateCollected) {
-            is MainState.Ready, is MainState.PartOfDataReady -> ReadyStatsScreen(state)
-
-            is MainState.Loading -> LoadingPlayerStats("Loading ${state.playerName} stats.")
-
-            is MainState.Empty -> StateText("Click load stats button.")
-
-            is MainState.Error -> StateText("Some error occurred: ${state.message}.")
-        }
-        Spacer(modifier = Modifier.fillMaxHeight())
-    }
+            .animateContentSize(),
+        content = content
+    )
+    Spacer(modifier = Modifier.fillMaxHeight())
 }
 
 @Composable
@@ -85,13 +108,15 @@ fun StateText(text: String) {
     )
 }
 
+// TODO добавить ключи
 @Composable
-fun ReadyStatsScreen(state: MainState) {
+fun ReadyStatsScreen(state: MainState, peekHeight: Dp) {
     val mapStatsExpandableState = rememberExpandableState()
     val bestTeammatesExpandableState = rememberExpandableState()
     val lobsterTeammatesExpandableState = rememberExpandableState()
     val bestAgainstTeammatesExpandableState = rememberExpandableState()
     val bestOpponentsTeammatesExpandableState = rememberExpandableState()
+    val mainViewModel = mokoKoinViewModel<MainViewModel>()
     val horizontalPadding = PaddingValues(start = 12.dp, end = 12.dp)
     val playerData = when (state) {
         is MainState.PartOfDataReady -> state.data
@@ -100,7 +125,7 @@ fun ReadyStatsScreen(state: MainState) {
     }
     LazyColumn(
         modifier = Modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(top = 12.dp)
+        contentPadding = PaddingValues(top = 12.dp, bottom = peekHeight)
     ) {
         item {
             Text(
@@ -124,6 +149,12 @@ fun ReadyStatsScreen(state: MainState) {
                 StatItem(
                     title = "Winrate",
                     value = getWinrateString(stats.winrate),
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                StatItem(
+                    title = "Hours spent in analyzed games",
+                    value = TimeUnit.MILLISECONDS.toHours(stats.overallPlayerPlaytimeMs).toString(),
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -159,12 +190,28 @@ fun ReadyStatsScreen(state: MainState) {
             }
         }
 
+        val setSelected: (WithPlayerStat, Boolean) -> Unit = { withPlayerStat, isEnemy ->
+            mainViewModel.selectedPlayerStat.value = SelectedPlayerStat(
+                playerNickNames = playerData.playerNames,
+                withPlayerStat = withPlayerStat,
+                isEnemy = isEnemy
+            )
+        }
+
         val allyPlayerItemCreator: @Composable LazyItemScope.(WithPlayerStat) -> Unit = {
-            PlayerItem(modifier = Modifier.padding(horizontalPadding), item = it, isEnemies = false)
+            PlayerItem(
+                modifier = Modifier.padding(horizontalPadding),
+                item = it,
+                isEnemies = false
+            ) { withPlayerStat -> setSelected(withPlayerStat, false) }
         }
 
         val enemyPlayerItemCreator: @Composable LazyItemScope.(WithPlayerStat) -> Unit = {
-            PlayerItem(modifier = Modifier.padding(horizontalPadding), item = it, isEnemies = true)
+            PlayerItem(
+                modifier = Modifier.padding(horizontalPadding),
+                item = it,
+                isEnemies = true
+            ) { withPlayerStat -> setSelected(withPlayerStat, true) }
         }
 
         addExpandableItemsWithHeader(
@@ -253,18 +300,22 @@ fun <T> LazyListScope.addExpandableItemsWithHeader(
     }
 }
 
+// TODO сделать список матчей против или с игроком при клике
 @Composable
 fun LazyItemScope.PlayerItem(
     modifier: Modifier = Modifier,
     item: WithPlayerStat,
-    isEnemies: Boolean
+    isEnemies: Boolean,
+    onClick: (WithPlayerStat) -> Unit
 ) {
     val shape = RoundedCornerShape(10.dp)
     Column(
         modifier = Modifier
             .padding(8.dp)
             .clip(shape)
-            .clickable {}
+            .clickable {
+                if (item.playerStats.matchesTogether != null) onClick(item)
+            }
             .background(
                 MaterialTheme.colorScheme.surfaceVariant,
                 shape = shape
@@ -283,8 +334,7 @@ fun LazyItemScope.PlayerItem(
             Column(modifier = Modifier.fillMaxWidth(0.5f)) {
                 val totalGamesWithText = if (isEnemies) "Games against" else "Games together"
                 Text(text = totalGamesWithText + System.lineSeparator() + item.playerStats.totalGamesTogether)
-                val withText =
-                    "Winrate " + if (isEnemies) "against player" else "with teammate"
+                val withText = "Winrate " + if (isEnemies) "against player" else "with teammate"
                 Text(
                     modifier = Modifier.padding(top = 4.dp),
                     text = withText + System.lineSeparator() + getWinrateString(item.playerStats.winrate)

@@ -11,8 +11,8 @@ android {
         applicationId = "ru.snowmaze.barstats"
         minSdk = 21
         targetSdk = 34
-        versionCode = 4
-        versionName = "0.0.5"
+        versionCode = 6
+        versionName = "0.0.6"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -60,6 +60,7 @@ dependencies {
     implementation(libs.okio)
     implementation("io.insert-koin:koin-androidx-compose:$koin_version")
     implementation("io.insert-koin:koin-android:$koin_version")
+    implementation("io.coil-kt:coil-compose:2.5.0")
     implementation(projects.app.shared)
     implementation(projects.library)
     implementation(libs.androidx.core.ktx)

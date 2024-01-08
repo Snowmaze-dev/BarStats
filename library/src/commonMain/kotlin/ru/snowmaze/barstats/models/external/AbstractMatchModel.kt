@@ -6,6 +6,7 @@ abstract class AbstractMatchModel {
     abstract val startTime: String
     abstract val durationMs: Long
     abstract val mapName: String
+    abstract val mapFilename: String?
     abstract val teams: List<AbstractTeamModel>
 
     val withoutResult get() = teams.all { !it.winningTeam }
@@ -14,7 +15,7 @@ abstract class AbstractMatchModel {
         it.players.firstOrNull { player -> player.name.equals(playerName, ignoreCase = true) } != null
     }
 
-    fun playerTeam(playerNames: Set<String>) = teams.firstOrNull {
+    fun playerTeam(playerNames: Collection<String>) = teams.firstOrNull {
         it.players.firstOrNull { player -> playerNames.contains(player.name) } != null
     }
 }

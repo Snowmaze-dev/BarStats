@@ -17,6 +17,8 @@ data class SimpleMatchModel(
 ) : AbstractMatchModel() {
 
     override val mapName: String = map.scriptName
+
+    override val mapFilename = map.fileName
 }
 
 @Serializable

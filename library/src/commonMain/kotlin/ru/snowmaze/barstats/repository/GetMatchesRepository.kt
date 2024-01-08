@@ -24,17 +24,31 @@ class GetMatchesRepository(
     private val fileSystem = getSystemFileSystem()
     private val daySeconds = 3600 * 24
 
-    suspend fun getPlayerMatches(playerName: String, preset: String): List<SimpleMatchModel> {
+    // TODO сделать возможность если написали ник неправильно в плане больших или маленьких букв
+    // искать настоящий ник в массиве игроков и только потом делать запрос
+    suspend fun getPlayerMatches(playerName: String, preset: String) =
+        getPlayerMatches(playerName, preset, false)
+
+    private suspend fun getPlayerMatches(
+        playerName: String,
+        preset: String,
+        forceDownload: Boolean,
+    ): List<SimpleMatchModel> {
         val playerFile = playersDir.resolve("$playerName-$preset.json")
 
-        return if (fileSystem.exists(playerFile)) try {
+        return if (fileSystem.exists(playerFile) && !forceDownload) try {
             val data = fileDataWriter.parse<SimpleMatchesResponse>(playerFile)
             if (Clock.System.now().epochSeconds - data.responseTime > daySeconds) {
                 fileSystem.delete(playerFile)
-                getPlayerMatches(playerName, preset)
+                getPlayerMatches(playerName, preset, true)
             } else data.data
         } catch (e: Exception) {
-            throw FileOpenException("Unable to read player matches in file $playerFile", e)
+            try {
+                fileSystem.delete(playerFile)
+                getPlayerMatches(playerName, preset, true)
+            } catch (e: Exception) {
+                throw e
+            }
         }
         else {
             val matches = retryRequest {

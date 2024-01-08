@@ -11,12 +11,12 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ru.snowmaze.barstats.usecases.GetStatisticsUseCase
-import java.lang.Exception
 
 class MainViewModel(private val getStatisticsUseCase: GetStatisticsUseCase) : ViewModel() {
 
     val playerName = MutableStateFlow("")
     val preset = MutableStateFlow("all")
+    val selectedPlayerStat = MutableStateFlow<SelectedPlayerStat?>(null)
     private val _state = MutableStateFlow<MainState>(MainState.Empty)
     private var job: Job? = null
     val state: StateFlow<MainState> = _state.stateIn(
@@ -24,12 +24,12 @@ class MainViewModel(private val getStatisticsUseCase: GetStatisticsUseCase) : Vi
         started = SharingStarted.WhileSubscribed(5000L),
         initialValue = MainState.Empty
     )
-
     fun getPlayerStats(
         map: String?,
         limitCount: Int?,
         minGamesForStats: Int?
     ) {
+        selectedPlayerStat.value = null
         job?.cancel()
         job = viewModelScope.launch {
             val playerName = playerName.value
@@ -53,14 +53,15 @@ class MainViewModel(private val getStatisticsUseCase: GetStatisticsUseCase) : Vi
             } catch (e: Exception) {
                 if (e is CancellationException) return@launch
                 e.printStackTrace()
-                val message = e.message
                 _state.value = MainState.Error(
-                    if (message.isNullOrBlank()) e.javaClass.simpleName
-                    else message
+                    (e.createMessage() + " " + (e.cause?.createMessage() ?: ""))
                 )
                 return@launch
             }
             _state.value = MainState.Ready(result)
         }
     }
+
+    private fun Throwable.createMessage() = if (message.isNullOrBlank()) javaClass.simpleName
+    else message
 }
