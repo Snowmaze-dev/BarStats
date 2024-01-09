@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import ru.snowmaze.barstats.usecases.GetStatisticsGatherModel
 import ru.snowmaze.barstats.usecases.GetStatisticsUseCase
 
 class MainViewModel(private val getStatisticsUseCase: GetStatisticsUseCase) : ViewModel() {
@@ -27,7 +28,8 @@ class MainViewModel(private val getStatisticsUseCase: GetStatisticsUseCase) : Vi
     fun getPlayerStats(
         map: String?,
         limitCount: Int?,
-        minGamesForStats: Int?
+        minGamesForStats: Int?,
+        shouldCalculateOverallWinrates: Boolean
     ) {
         selectedPlayerStat.value = null
         job?.cancel()
@@ -43,7 +45,10 @@ class MainViewModel(private val getStatisticsUseCase: GetStatisticsUseCase) : Vi
                         preset = preset,
                         map = map.takeIf { !it.isNullOrBlank() },
                         limit = limitCount,
-                        minGamesForStats = minGamesForStats ?: 10
+                        minGamesForStats = minGamesForStats ?: 10,
+                        getStatisticsGatherModel = GetStatisticsGatherModel(
+                            shouldCalculateOverallWinrates = shouldCalculateOverallWinrates
+                        )
                     ) { playerData ->
                         withContext(Dispatchers.Main) {
                             _state.value = MainState.PartOfDataReady(playerData)

@@ -12,6 +12,11 @@ import ru.snowmaze.barstats.models.external.PlayerModel
 import ru.snowmaze.barstats.parallelMap
 import kotlin.math.abs
 
+class GetStatisticsGatherModel(
+    val shouldSearchUnbalancedGames: Boolean = false,
+    val shouldCalculateOverallWinrates: Boolean = false
+)
+
 class GetStatisticsUseCase(
     private val getPlayersStatsUseCase: GetPlayerStatsUseCase,
     private val showInfo: ((String) -> Unit)? = null
@@ -25,7 +30,7 @@ class GetStatisticsUseCase(
         limit: Int? = null,
         map: String? = null,
         fromTimeSeconds: Long? = null,
-        shouldPrintStatsWithOtherPlayers: Boolean = false,
+        getStatisticsGatherModel: GetStatisticsGatherModel = GetStatisticsGatherModel(),
         onPartOfDataLoaded: suspend (PlayerData) -> Unit = {}
     ): GetStatisticsResult {
         val data = getPlayersStatsUseCase.getPlayerStats(
@@ -69,7 +74,8 @@ class GetStatisticsUseCase(
             }
         }
 
-        val unbalancedMatchesStats = if (shouldPrintStatsWithOtherPlayers) getUnbalancedMatches(
+        val shouldSearchUnbalancedGames = getStatisticsGatherModel.shouldSearchUnbalancedGames
+        val unbalancedMatchesStats = if (shouldSearchUnbalancedGames) getUnbalancedMatches(
             userId = data.userId,
             matches = matches,
             preset = preset,
@@ -108,8 +114,10 @@ class GetStatisticsUseCase(
         val mapStats: suspend Long.(statMap: Map<Long, PlayerStats>) -> WithPlayerStat = {
             val teammateId = this
             val teammateStats = it.getValue(teammateId)
-            val teammateData = getPlayersStatsUseCase.getPlayerStats(teammateId, preset, limit, map)
-            WithPlayerStat(teammateData, teammateStats)
+            val teammateData = if (getStatisticsGatherModel.shouldCalculateOverallWinrates) {
+                getPlayersStatsUseCase.getPlayerStats(teammateId, preset, limit, map)
+            } else null
+            WithPlayerStat(teammateData, teammateStats.name, teammateStats)
         }
         val mapTeammates: suspend List<Long>.() -> List<WithPlayerStat> = {
             parallelMap(20) {

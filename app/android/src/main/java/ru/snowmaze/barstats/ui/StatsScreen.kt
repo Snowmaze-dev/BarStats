@@ -325,7 +325,7 @@ fun LazyItemScope.PlayerItem(
             .animateItemPlacement()
             .then(modifier)
     ) {
-        Text(text = item.playerData.playerName, fontWeight = FontWeight.SemiBold)
+        Text(text = item.withPlayerName, fontWeight = FontWeight.SemiBold)
         Box(
             Modifier
                 .fillMaxWidth()
@@ -347,7 +347,10 @@ fun LazyItemScope.PlayerItem(
                     .align(Alignment.TopEnd)
                     .fillMaxWidth(0.5f)
             ) {
-                Text(text = "Player overall winrate " + getWinrateString(item.playerData.winrate))
+                val withWinrate = item.playerData?.winrate
+                if (withWinrate != null) {
+                    Text(text = "Player overall winrate " + getWinrateString(withWinrate))
+                }
                 val winsWith = "Wins " + if (isEnemies) "against player" else "with teammate"
                 Text(
                     modifier = Modifier.padding(top = 4.dp),

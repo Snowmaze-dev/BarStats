@@ -11,4 +11,8 @@ class GetStatisticsResult(
     val bestOpponents: List<WithPlayerStat>,
 )
 
-class WithPlayerStat(val playerData: PlayerData, val playerStats: PlayerStats)
+class WithPlayerStat(
+    val playerData: PlayerData? = null,
+    val withPlayerName: String,
+    val playerStats: PlayerStats
+)

@@ -47,7 +47,7 @@ fun MatchesScreen(stat: SelectedPlayerStat, peekHeight: Dp) {
         item {
             val withLabel = if (stat.isEnemy) "against" else "with"
             Text(
-                text = "Matches list $withLabel player ${stat.withPlayerStat.playerData.playerName}",
+                text = "Matches list $withLabel player ${stat.withPlayerStat.withPlayerName}",
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
                     .padding(top = 8.dp, bottom = 4.dp)

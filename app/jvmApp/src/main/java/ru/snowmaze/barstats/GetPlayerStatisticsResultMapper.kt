@@ -12,11 +12,12 @@ fun GetStatisticsResult.mapToSection(splitter: String): Section {
         mapIndexed { index, withStats ->
             SectionValue.StringSectionValue(
                 mapStats(
-                    index,
-                    withStats.playerData,
-                    withStats.playerStats,
-                    isEnemies,
-                    splitter
+                    index = index,
+                    playerName = withStats.withPlayerName,
+                    playerData = withStats.playerData,
+                    playerStats = withStats.playerStats,
+                    isEnemies = isEnemies,
+                    splitter = splitter
                 )
             )
         }
@@ -81,17 +82,19 @@ fun GetStatisticsResult.mapToSection(splitter: String): Section {
 
 fun mapStats(
     index: Int,
-    playerData: PlayerData,
+    playerName: String,
+    playerData: PlayerData?,
     playerStats: PlayerStats,
     isEnemies: Boolean,
     splitter: String
 ) = buildString {
-    append(index + 1, ". ", playerData.playerName, splitter)
+    append(index + 1, ". ", playerName, splitter)
     val totalGamesWithText = if (isEnemies) "Games against" else "Games together"
     append(totalGamesWithText, ": ", playerStats.totalGamesTogether, splitter)
     val withText = if (isEnemies) "against player" else "with teammate"
     append("Winrate ", withText, ": ", playerStats.winrate, "%", splitter)
-    append("Player overall winrate: ", playerData.winrate, "%", splitter)
+    val winrate = playerData?.winrate
+    if (winrate != null) append("Player overall winrate: ", winrate, "%", splitter)
     val winsWith = if (isEnemies) "against player" else "with teammate"
     append("Wins ", winsWith, ": ", if (isEnemies) playerStats.lostGames else playerStats.wonGames, splitter)
     val losesWith = if (isEnemies) "against player" else "with teammate"

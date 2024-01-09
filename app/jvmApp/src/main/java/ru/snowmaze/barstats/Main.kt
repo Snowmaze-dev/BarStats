@@ -13,6 +13,7 @@ import okio.Path.Companion.toOkioPath
 import ru.snowmaze.barstats.repository.GetMatchesRepository
 import ru.snowmaze.barstats.repository.PlayersRepository
 import ru.snowmaze.barstats.usecases.GetPlayerStatsUseCase
+import ru.snowmaze.barstats.usecases.GetStatisticsGatherModel
 import ru.snowmaze.barstats.usecases.GetStatisticsUseCase
 import ru.snowmaze.barstats.usecases.PlayersTopUseCase
 import java.io.File
@@ -73,8 +74,11 @@ fun main(args: Array<String>) = runBlocking(Dispatchers.IO) {
             section = getStatisticsUseCase.getStatistics(
                 playerName = playerName,
                 preset = preset,
-                shouldPrintStatsWithOtherPlayers = params["should_gather_additional_data"]
-                    .toBoolean(),
+                getStatisticsGatherModel = GetStatisticsGatherModel(
+                    shouldSearchUnbalancedGames = params["should_gather_additional_data"]
+                        .toBoolean(),
+                    shouldCalculateOverallWinrates = true
+                ),
                 map = params["map"],
                 fromTimeSeconds = fromDate?.let {
                     runCatching {
