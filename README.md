@@ -8,3 +8,5 @@ Currently, two versions are available:
 2. an Android version, which provides a cleaner interface but with less customization. 
 
 You can download both versions in releases.
+
+https://discord.com/channels/549281623154229250/1194354354690457720
